@@ -1,3 +1,4 @@
+#include <ntifs.h>
 #include "Vmx.h"
 #include "Common.h"
 #include "Ept.h"
@@ -7,9 +8,8 @@
 #include "HypervisorRoutines.h"
 #include "Events.h"
 
-
 /* Main Vmexit events handler */
-BOOLEAN VmxVmexitHandler(PGUEST_REGS GuestRegs)
+BOOLEAN VmxVmexitHandler(PCONTEXT Context)
 {
 	int CurrentProcessorIndex;
 	VMEXIT_INTERRUPT_INFO InterruptExit;
@@ -19,6 +19,8 @@ BOOLEAN VmxVmexitHandler(PGUEST_REGS GuestRegs)
 	ULONG Rflags;
 	ULONG EcxReg;
 	ULONG ExitInstructionLength;
+
+	Context->Rcx = *(UINT64*)((uintptr_t)Context - sizeof(Context->Rcx));
 
 	/*********** SEND MESSAGE AFTER WE SET THE STATE ***********/
 
@@ -75,27 +77,27 @@ BOOLEAN VmxVmexitHandler(PGUEST_REGS GuestRegs)
 
 	case EXIT_REASON_CR_ACCESS:
 	{
-		HvHandleControlRegisterAccess(GuestRegs);
+		HvHandleControlRegisterAccess(Context);
 
 		break;
 	}
 	case EXIT_REASON_MSR_READ:
 	{
-		EcxReg = GuestRegs->rcx & 0xffffffff;
-		HvHandleMsrRead(GuestRegs);
+		EcxReg = Context->Rcx & 0xffffffff;
+		HvHandleMsrRead(Context);
 
 		break;
 	}
 	case EXIT_REASON_MSR_WRITE:
 	{
-		EcxReg = GuestRegs->rcx & 0xffffffff;
-		HvHandleMsrWrite(GuestRegs);
+		EcxReg = Context->Rcx & 0xffffffff;
+		HvHandleMsrWrite(Context);
 
 		break;
 	}
 	case EXIT_REASON_CPUID:
 	{
-		HvHandleCpuid(GuestRegs);
+		HvHandleCpuid(Context);
 
 		break;
 	}
@@ -133,15 +135,15 @@ BOOLEAN VmxVmexitHandler(PGUEST_REGS GuestRegs)
 	case EXIT_REASON_VMCALL:
 	{
 		// Check if it's our routines that request the VMCALL our it relates to Hyper-V
-		if (GuestRegs->r10 == 0x48564653 && GuestRegs->r11 == 0x564d43414c4c && GuestRegs->r12 == 0x4e4f485950455256)
+		if (Context->R10 == 0x48564653 && Context->R11 == 0x564d43414c4c && Context->R12 == 0x4e4f485950455256)
 		{
 			// Then we have to manage it as it relates to us
-			GuestRegs->rax = VmxVmcallHandler(GuestRegs->rcx, GuestRegs->rdx, GuestRegs->r8, GuestRegs->r9);
+			Context->Rax = VmxVmcallHandler(Context->Rcx, Context->Rdx, Context->R8, Context->R9);
 		}
 		else
 		{
 			// Otherwise let the top-level hypervisor to manage it
-			GuestRegs->rax = AsmHypervVmcall(GuestRegs->rcx, GuestRegs->rdx, GuestRegs->r8);
+			Context->Rax = AsmHypervVmcall(Context->Rcx, Context->Rdx, Context->R8);
 		}
 		break;
 	}

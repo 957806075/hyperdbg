@@ -31,15 +31,15 @@ ULONG HvAdjustControls(ULONG Ctl, ULONG Msr);
 // Notify all cores about EPT Invalidation
 VOID HvNotifyAllToInvalidateEpt();
 // Handle Cpuid
-VOID HvHandleCpuid(PGUEST_REGS RegistersState);
+VOID HvHandleCpuid(PCONTEXT RegistersState);
 // Fill guest selector data
 VOID HvFillGuestSelectorData(PVOID GdtBase, ULONG SegmentRegister, USHORT Selector);
 // Handle Guest's Control Registers Access
-VOID HvHandleControlRegisterAccess(PGUEST_REGS GuestState);
+VOID HvHandleControlRegisterAccess(PCONTEXT GuestState);
 // Handle Guest's Msr read
-VOID HvHandleMsrRead(PGUEST_REGS GuestRegs);
+VOID HvHandleMsrRead(PCONTEXT GuestRegs);
 // Handle Guest's Msr write
-VOID HvHandleMsrWrite(PGUEST_REGS GuestRegs);
+VOID HvHandleMsrWrite(PCONTEXT GuestRegs);
 // Resume GUEST_RIP to next instruction
 VOID HvResumeToNextInstruction();
 // Invalidate EPT using Vmcall (should be called from Vmx non root mode)

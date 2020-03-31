@@ -165,7 +165,7 @@ BOOLEAN HvGetSegmentDescriptor(PSEGMENT_SELECTOR SegmentSelector, USHORT Selecto
 
 
 /* Handle Cpuid Vmexits*/
-VOID HvHandleCpuid(PGUEST_REGS RegistersState)
+VOID HvHandleCpuid(PCONTEXT RegistersState)
 {
 	INT32 cpu_info[4];
 	ULONG Mode = 0;
@@ -173,17 +173,17 @@ VOID HvHandleCpuid(PGUEST_REGS RegistersState)
 
 	// Otherwise, issue the CPUID to the logical processor based on the indexes
 	// on the VP's GPRs.
-	__cpuidex(cpu_info, (INT32)RegistersState->rax, (INT32)RegistersState->rcx);
+	__cpuidex(cpu_info, (INT32)RegistersState->Rax, (INT32)RegistersState->Rcx);
 
 	// Check if this was CPUID 1h, which is the features request.
-	if (RegistersState->rax == CPUID_PROCESSOR_AND_PROCESSOR_FEATURE_IDENTIFIERS)
+	if (RegistersState->Rax == CPUID_PROCESSOR_AND_PROCESSOR_FEATURE_IDENTIFIERS)
 	{
 
 		// Set the Hypervisor Present-bit in RCX, which Intel and AMD have both
 		// reserved for this indication.
 		cpu_info[2] |= HYPERV_HYPERVISOR_PRESENT_BIT;
 	}
-	else if (RegistersState->rax == CPUID_HV_VENDOR_AND_MAX_FUNCTIONS)
+	else if (RegistersState->Rax == CPUID_HV_VENDOR_AND_MAX_FUNCTIONS)
 	{
 
 		// Return a maximum supported hypervisor CPUID leaf range and a vendor
@@ -194,7 +194,7 @@ VOID HvHandleCpuid(PGUEST_REGS RegistersState)
 		cpu_info[2] = 'rcSm';
 		cpu_info[3] = 'hcta';
 	}
-	else if (RegistersState->rax == HYPERV_CPUID_INTERFACE)
+	else if (RegistersState->Rax == HYPERV_CPUID_INTERFACE)
 	{
 		// Return our interface identifier
 		//cpu_info[0] = 'HVFS'; // [H]yper[V]isor [F]rom [S]cratch 
@@ -208,15 +208,15 @@ VOID HvHandleCpuid(PGUEST_REGS RegistersState)
 	}
 
 	// Copy the values from the logical processor registers into the VP GPRs.
-	RegistersState->rax = cpu_info[0];
-	RegistersState->rbx = cpu_info[1];
-	RegistersState->rcx = cpu_info[2];
-	RegistersState->rdx = cpu_info[3];
+	RegistersState->Rax = cpu_info[0];
+	RegistersState->Rbx = cpu_info[1];
+	RegistersState->Rcx = cpu_info[2];
+	RegistersState->Rdx = cpu_info[3];
 
 }
 
 /* Handles Guest Access to control registers */
-VOID HvHandleControlRegisterAccess(PGUEST_REGS GuestState)
+VOID HvHandleControlRegisterAccess(PCONTEXT GuestState)
 {
 	ULONG ExitQualification = 0;
 	PMOV_CR_QUALIFICATION CrExitQualification;
@@ -227,7 +227,7 @@ VOID HvHandleControlRegisterAccess(PGUEST_REGS GuestState)
 
 	CrExitQualification = (PMOV_CR_QUALIFICATION)&ExitQualification;
 
-	RegPtr = (PULONG64)&GuestState->rax + CrExitQualification->Fields.Register;
+	RegPtr = (PULONG64)&GuestState->Rax + CrExitQualification->Fields.Register;
 
 	/* Because its RSP and as we didn't save RSP correctly (because of pushes) so we have make it points to the GUEST_RSP */
 	if (CrExitQualification->Fields.Register == 4)
@@ -309,7 +309,7 @@ VOID HvFillGuestSelectorData(PVOID GdtBase, ULONG SegmentRegister, USHORT Select
 }
 
 /* Handles in the cases when RDMSR causes a Vmexit*/
-VOID HvHandleMsrRead(PGUEST_REGS GuestRegs)
+VOID HvHandleMsrRead(PCONTEXT GuestRegs)
 {
 
 	MSR msr = { 0 };
@@ -338,18 +338,18 @@ VOID HvHandleMsrRead(PGUEST_REGS GuestRegs)
 	   */
 
 	   // Check for sanity of MSR if they're valid or they're for reserved range for WRMSR and RDMSR
-	if ((GuestRegs->rcx <= 0x00001FFF) || ((0xC0000000 <= GuestRegs->rcx) && (GuestRegs->rcx <= 0xC0001FFF))
-		|| (GuestRegs->rcx >= RESERVED_MSR_RANGE_LOW && (GuestRegs->rcx <= RESERVED_MSR_RANGE_HI)))
+	if ((GuestRegs->Rcx <= 0x00001FFF) || ((0xC0000000 <= GuestRegs->Rcx ) && (GuestRegs->Rcx <= 0xC0001FFF))
+		|| (GuestRegs->Rcx >= RESERVED_MSR_RANGE_LOW && (GuestRegs->Rcx <= RESERVED_MSR_RANGE_HI)))
 	{
-		msr.Content = __readmsr(GuestRegs->rcx);
+		msr.Content = __readmsr(GuestRegs->Rcx);
 	}
 
-	GuestRegs->rax = msr.Low;
-	GuestRegs->rdx = msr.High;
+	GuestRegs->Rax = msr.Low;
+	GuestRegs->Rdx = msr.High;
 }
 
 /* Handles in the cases when RDMSR causes a Vmexit*/
-VOID HvHandleMsrWrite(PGUEST_REGS GuestRegs)
+VOID HvHandleMsrWrite(PCONTEXT GuestRegs)
 {
 	MSR msr = { 0 };
 
@@ -367,12 +367,12 @@ VOID HvHandleMsrWrite(PGUEST_REGS GuestRegs)
 	   */
 
 	   // Check for sanity of MSR if they're valid or they're for reserved range for WRMSR and RDMSR
-	if ((GuestRegs->rcx <= 0x00001FFF) || ((0xC0000000 <= GuestRegs->rcx) && (GuestRegs->rcx <= 0xC0001FFF))
-		|| (GuestRegs->rcx >= RESERVED_MSR_RANGE_LOW && (GuestRegs->rcx <= RESERVED_MSR_RANGE_HI)))
+	if ((GuestRegs->Rcx <= 0x00001FFF) || ((0xC0000000 <= GuestRegs->Rcx) && (GuestRegs->Rcx <= 0xC0001FFF))
+		|| (GuestRegs->Rcx >= RESERVED_MSR_RANGE_LOW && (GuestRegs->Rcx <= RESERVED_MSR_RANGE_HI)))
 	{
-		msr.Low = (ULONG)GuestRegs->rax;
-		msr.High = (ULONG)GuestRegs->rdx;
-		__writemsr(GuestRegs->rcx, msr.Content);
+		msr.Low = (ULONG)GuestRegs->Rax;
+		msr.High = (ULONG)GuestRegs->Rdx;
+		__writemsr(GuestRegs->Rcx, msr.Content);
 	}
 
 }

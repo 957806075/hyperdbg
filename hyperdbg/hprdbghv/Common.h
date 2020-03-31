@@ -96,18 +96,6 @@ inline void SpinlockUnlock(LONG* Lock);
 // Device type        
 #define SIOCTL_TYPE 40000
 
-// The IOCTL function codes from 0x800 to 0xFFF are for customer use.
-#define IOCTL_SIOCTL_METHOD_IN_DIRECT \
-    CTL_CODE( SIOCTL_TYPE, 0x900, METHOD_IN_DIRECT, FILE_ANY_ACCESS  )
-
-#define IOCTL_SIOCTL_METHOD_OUT_DIRECT \
-    CTL_CODE( SIOCTL_TYPE, 0x901, METHOD_OUT_DIRECT , FILE_ANY_ACCESS  )
-
-#define IOCTL_SIOCTL_METHOD_BUFFERED \
-    CTL_CODE( SIOCTL_TYPE, 0x902, METHOD_BUFFERED, FILE_ANY_ACCESS  )
-
-#define IOCTL_SIOCTL_METHOD_NEITHER \
-    CTL_CODE( SIOCTL_TYPE, 0x903, METHOD_NEITHER , FILE_ANY_ACCESS  )
 
 //////////////////////////////////////////////////
 //					 Structures					//
@@ -115,6 +103,7 @@ inline void SpinlockUnlock(LONG* Lock);
 
 typedef struct _GUEST_REGS
 {
+	// GP Regs
 	ULONG64 rax;                  // 0x00         
 	ULONG64 rcx;
 	ULONG64 rdx;                  // 0x10
@@ -131,6 +120,8 @@ typedef struct _GUEST_REGS
 	ULONG64 r13;
 	ULONG64 r14;                  // 0x70
 	ULONG64 r15;
+
+
 } GUEST_REGS, * PGUEST_REGS;
 
 typedef union _RFLAGS
